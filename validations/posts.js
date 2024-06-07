@@ -40,6 +40,56 @@ const bodyData = {
       errorMessage: 'Available deve essere un booleano.',
     },
   },
+
+  categoryId: {
+    in: ['body'],
+    isInt: {
+      errorMessage: 'CategoryId deve essere numero intero',
+      bail: true,
+    },
+    custom: {
+      options: async (value) => {
+        const categoryId = parseInt(value);
+        const category = await prisma.category.findUnique({
+          where: { id: categoryId },
+        });
+        if (!category) {
+          throw new Error(`Non esiste una Category con id ${categoryId}`);
+        }
+        return true;
+      },
+    },
+  },
+
+  tags: {
+    in: ['body'],
+    notEmpty: {
+      errorMessage: 'tags è un campo obbligatorio.',
+      bail: true,
+    },
+    isArray: {
+      errorMessage: 'tags deve essere un array',
+      bail: true,
+    },
+    custom: {
+      options: async (ids) => {
+        if (ids.length === 0) {
+          throw new Error(`Una pizza deve avere almeno un ingrediente`);
+        }
+        const notIntegerId = ids.find((id) => isNaN(parseInt(id)));
+        if (notIntegerId) {
+          throw new Error(`Uno o più ID non sono dei numeri interi.`);
+        }
+        const tags = await prisma.ingredient.findMany({
+          where: { id: { in: ids } },
+        });
+        if (tags.length !== ids.length) {
+          throw new Error(`Uno o più ingredienti specificati non esistono.`);
+        }
+        return true;
+      },
+    },
+  },
 };
 
 module.exports = {
